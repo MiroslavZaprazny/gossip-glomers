@@ -1,7 +1,17 @@
 package main
 
-import pkg "github.com/MiroslavZaprazny/gossip-glomers/pkg"
+import (
+	"log"
+
+	handlers "github.com/MiroslavZaprazny/gossip-glomers/internal/handlers"
+	pkg "github.com/MiroslavZaprazny/gossip-glomers/pkg"
+)
 
 func main() {
-	pkg.MainLoop()
+	n := pkg.NewNode()
+	handlers.RegisterEcho(n)
+
+	if err := n.Listen(); err != nil {
+		log.Fatal(err)
+	}
 }
