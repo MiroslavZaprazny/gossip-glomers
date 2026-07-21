@@ -32,7 +32,7 @@ func (mb *MessageBody) SetInReplyTo(msgId int) {
 	mb.InReplyTo = msgId
 }
 
-type Handler func(msg Message) error
+type Handler func(msg *Message) error
 
 type Node struct {
 	id       string
@@ -78,7 +78,7 @@ func (n *Node) Listen() error {
 			n.id = init.NodeId
 			n.nodeIds = init.NodeIds
 
-			if err := n.Reply(msg, &MessageBody{Type: "init_ok"}); err != nil {
+			if err := n.Reply(&msg, &MessageBody{Type: "init_ok"}); err != nil {
 				return err
 			}
 		} else {
@@ -90,7 +90,7 @@ func (n *Node) Listen() error {
 				os.Exit(1)
 			}
 
-			if err := handler(msg); err != nil {
+			if err := handler(&msg); err != nil {
 				return err
 			}
 		}
@@ -99,7 +99,7 @@ func (n *Node) Listen() error {
 	return nil
 }
 
-func (n *Node) Reply(originalMsg Message, body Replyable) error {
+func (n *Node) Reply(originalMsg *Message, body Replyable) error {
 	var msgBody MessageBody
 	if err := json.Unmarshal(originalMsg.Body, &msgBody); err != nil {
 		return err
