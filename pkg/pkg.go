@@ -7,22 +7,30 @@ import (
 	"os"
 )
 
+// Data types implmeneting the maelstrom protocol
+// see: https://github.com/jepsen-io/maelstrom/blob/main/doc/protocol.md
+
 type Message struct {
-	Src  string          `json:"src"`
-	Dest string          `json:"dest"`
-	Body json.RawMessage `json:"body"`
+	Src  string          `json:"src"` // A string identifying the node this message came from
+	Dest string          `json:"dest"` // A string identifying the node this message is to
+	Body json.RawMessage `json:"body"` // An object: the payload of the message
 }
 
 type MessageBody struct {
-	Type      string `json:"type"`
-	MsgId     int    `json:"msg_id,omitempty"` //unique only to the local node
-	InReplyTo int    `json:"in_reply_to,omitempty"`
+	Type      MsgType `json:"type"` // A string identifying the type of message this is
+	MsgId     int    `json:"msg_id,omitempty"` // A unique integer identifier(is only unique to the local node)
+	InReplyTo int    `json:"in_reply_to,omitempty"` // For req/response, the msg_id of the request
 }
 
-type InitMessageBody struct {
-	NodeId  string   `json:"node_id"`
-	NodeIds []string `json:"node_ids"`
-}
+type MsgType string
+
+const (
+	MsgInit MsgType = "init"
+	MsgInitOk MsgType = "init_ok"
+	MsgEcho MsgType = "echo"
+	MsgEchoOk MsgType = "echo_ok"
+	MsgError MsgType = "error"
+)
 
 type Replyable interface {
 	SetInReplyTo(msgId int)
@@ -37,18 +45,23 @@ type Handler func(msg *Message) error
 type Node struct {
 	id       string
 	nodeIds  []string
-	handlers map[string]Handler
+	handlers map[MsgType]Handler
 	enc      *json.Encoder
 }
 
 func NewNode() *Node {
 	return &Node{
-		handlers: make(map[string]Handler),
+		handlers: make(map[MsgType]Handler),
 		enc:      json.NewEncoder(os.Stdout),
 	}
 }
 
-func (n *Node) Handle(msgType string, handler Handler) {
+func (n *Node) Init(id string, nodeIds []string) {
+	n.id = id
+	n.nodeIds = nodeIds
+}
+
+func (n *Node) Handle(msgType MsgType, handler Handler) {
 	n.handlers[msgType] = handler
 }
 
@@ -68,40 +81,30 @@ func (n *Node) Listen() error {
 			return err
 		}
 
-		if body.Type == "init" {
-			var init InitMessageBody
+		handler, ok := n.handlers[body.Type]
 
-			if err := json.Unmarshal(msg.Body, &init); err != nil {
-				return err
-			}
-
-			n.id = init.NodeId
-			n.nodeIds = init.NodeIds
-
-			if err := n.Reply(&msg, &MessageBody{Type: "init_ok"}); err != nil {
-				return err
-			}
-		} else {
-			handler, ok := n.handlers[body.Type]
-
-			if !ok {
-				fmt.Fprintf(os.Stderr, "Unhandled msg type: %s", body.Type)
-
-				os.Exit(1)
-			}
-
-			if err := handler(&msg); err != nil {
-				return err
-			}
+		if !ok {
+			//Todo: maybe we should reply with code 10 - not-supported
+			fmt.Fprintf(os.Stderr, "Unhandled msg type: %s", body.Type)
+			continue
 		}
+
+		if err := handler(&msg); err != nil {
+			return err
+		}
+	}
+
+	if r.Err() != nil {
+		//Todo: maybe we should reply with some error code?
+		fmt.Fprintf(os.Stderr, "Scanner failed with error: %s", r.Err().Error())
 	}
 
 	return nil
 }
 
-func (n *Node) Reply(originalMsg *Message, body Replyable) error {
+func (n *Node) Reply(to *Message, body Replyable) error {
 	var msgBody MessageBody
-	if err := json.Unmarshal(originalMsg.Body, &msgBody); err != nil {
+	if err := json.Unmarshal(to.Body, &msgBody); err != nil {
 		return err
 	}
 
@@ -112,7 +115,7 @@ func (n *Node) Reply(originalMsg *Message, body Replyable) error {
 		return err
 	}
 
-	if err := n.enc.Encode(Message{Src: originalMsg.Dest, Dest: originalMsg.Src, Body: bodyJson}); err != nil {
+	if err := n.enc.Encode(Message{Src: to.Dest, Dest: to.Src, Body: bodyJson}); err != nil {
 		return err
 	}
 

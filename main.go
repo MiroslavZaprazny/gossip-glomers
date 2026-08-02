@@ -9,6 +9,7 @@ import (
 
 func main() {
 	n := pkg.NewNode()
+	handlers.RegisterInit(n)
 	handlers.RegisterEcho(n)
 
 	if err := n.Listen(); err != nil {
