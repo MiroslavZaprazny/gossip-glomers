@@ -12,7 +12,7 @@ type EchoMessage struct {
 }
 
 func RegisterEcho(n *pkg.Node) {
-	n.Handle(pkg.MsgEcho, func (msg *pkg.Message) error{
+	n.Handle(pkg.MsgEcho, func (msg *pkg.Message) error {
 		var echo EchoMessage
 		if err := json.Unmarshal(msg.Body, &echo); err != nil {
 			return err
@@ -21,11 +21,11 @@ func RegisterEcho(n *pkg.Node) {
 		if err := n.Reply(msg, &EchoMessage{
 			MessageBody: pkg.MessageBody{
 				Type: pkg.MsgEchoOk,
-				MsgId: echo.MsgId,
+				MsgId: n.NextMsgId(),
 			},
 			Echo: echo.Echo,
 		}); err != nil {
-			//todo do something?
+			return err
 		}
 
 		return nil

@@ -1,18 +1,14 @@
-package handlers
+package pkg
 
-import (
-	"encoding/json"
-
-	"github.com/MiroslavZaprazny/gossip-glomers/pkg"
-)
+import "encoding/json"
 
 type InitMessageBody struct {
 	NodeId  string   `json:"node_id"`
 	NodeIds []string `json:"node_ids"`
 }
 
-func RegisterInit(n *pkg.Node) {
-	n.Handle(pkg.MsgInit, func (msg *pkg.Message) error {
+func RegisterInit(n *Node) {
+	n.Handle(MsgInit, func(msg *Message) error {
 		var init InitMessageBody
 
 		if err := json.Unmarshal(msg.Body, &init); err != nil {
@@ -21,11 +17,10 @@ func RegisterInit(n *pkg.Node) {
 
 		n.Init(init.NodeId, init.NodeIds)
 
-		if err := n.Reply(msg, &pkg.MessageBody{Type: pkg.MsgInitOk}); err != nil {
+		if err := n.Reply(msg, &MessageBody{Type: MsgInitOk}); err != nil {
 			return err
 		}
 
 		return nil
 	})
 }
-

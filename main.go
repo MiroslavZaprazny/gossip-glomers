@@ -9,8 +9,10 @@ import (
 
 func main() {
 	n := pkg.NewNode()
-	handlers.RegisterInit(n)
+
+	pkg.RegisterInit(n)
 	handlers.RegisterEcho(n)
+	handlers.RegisterGenerate(n)
 
 	if err := n.Listen(); err != nil {
 		log.Fatal(err)
