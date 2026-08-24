@@ -3,24 +3,24 @@ package handlers
 import (
 	"encoding/json"
 
-	"github.com/MiroslavZaprazny/gossip-glomers/pkg"
+	maelstrom "github.com/MiroslavZaprazny/gossip-glomers/maelstrom"
 )
 
 type EchoMessage struct {
-	pkg.MessageBody
+	maelstrom.MessageBody
 	Echo string `json:"echo"`
 }
 
-func RegisterEcho(n *pkg.Node) {
-	n.Handle(pkg.MsgEcho, func (msg *pkg.Message) error {
+func RegisterEcho(n *maelstrom.Node) {
+	n.Handle(maelstrom.MsgEcho, func(msg *maelstrom.Message) error {
 		var echo EchoMessage
 		if err := json.Unmarshal(msg.Body, &echo); err != nil {
 			return err
 		}
 
 		if err := n.Reply(msg, &EchoMessage{
-			MessageBody: pkg.MessageBody{
-				Type: pkg.MsgEchoOk,
+			MessageBody: maelstrom.MessageBody{
+				Type:  maelstrom.MsgEchoOk,
 				MsgId: n.NextMsgId(),
 			},
 			Echo: echo.Echo,
@@ -31,4 +31,3 @@ func RegisterEcho(n *pkg.Node) {
 		return nil
 	})
 }
-

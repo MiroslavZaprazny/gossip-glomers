@@ -1,4 +1,4 @@
-package pkg
+package maelstorm
 
 import (
 	"bufio"
@@ -27,13 +27,25 @@ type MessageBody struct {
 type MsgType string
 
 const (
-	MsgInit       MsgType = "init"
-	MsgInitOk     MsgType = "init_ok"
-	MsgEcho       MsgType = "echo"
-	MsgEchoOk     MsgType = "echo_ok"
+	MsgInit   MsgType = "init"
+	MsgInitOk MsgType = "init_ok"
+
+	MsgEcho   MsgType = "echo"
+	MsgEchoOk MsgType = "echo_ok"
+
 	MsgGenerate   MsgType = "generate"
 	MsgGenerateOk MsgType = "generate_ok"
-	MsgError      MsgType = "error"
+
+	MsgBroadcast   MsgType = "broadcast"
+	MsgBroadcastOk MsgType = "broadcast_ok"
+
+	MsgRead   MsgType = "read"
+	MsgReadOk MsgType = "read_ok"
+
+	MsgTopology   MsgType = "topology"
+	MsgTopologyOk MsgType = "topology_ok"
+
+	MsgError MsgType = "error"
 )
 
 type Replyable interface {
@@ -47,17 +59,16 @@ func (mb *MessageBody) SetInReplyTo(msgId int) {
 type Handler func(msg *Message) error
 
 type Node struct {
-	id       string
-	msgId    atomic.Int64
-	nodeIds  []string
-	handlers map[MsgType]Handler
-	encMu    sync.Mutex
-	enc      *json.Encoder
+	id         string
+	nodeIds    []string
+	msgCounter atomic.Int64
+	handlers   map[MsgType]Handler
+	enc        *json.Encoder
+	encMu      sync.Mutex
 }
 
 func NewNode() *Node {
 	return &Node{
-		msgId:    atomic.Int64{},
 		handlers: make(map[MsgType]Handler),
 		enc:      json.NewEncoder(os.Stdout),
 	}
@@ -73,7 +84,7 @@ func (n *Node) NodeId() string {
 }
 
 func (n *Node) NextMsgId() int {
-	return int(n.msgId.Add(1))
+	return int(n.msgCounter.Add(1))
 }
 
 func (n *Node) Handle(msgType MsgType, handler Handler) {

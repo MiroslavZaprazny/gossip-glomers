@@ -1,4 +1,4 @@
-package pkg
+package maelstorm
 
 import "encoding/json"
 

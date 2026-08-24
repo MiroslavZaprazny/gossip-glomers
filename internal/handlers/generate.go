@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/MiroslavZaprazny/gossip-glomers/pkg"
+	maelstrom "github.com/MiroslavZaprazny/gossip-glomers/maelstrom"
 )
 
 type GenerateMessage struct {
-	pkg.MessageBody
+	maelstrom.MessageBody
 	Id string `json:"id"`
 }
 
-func RegisterGenerate(n *pkg.Node) {
-	n.Handle(pkg.MsgGenerate, func(msg *pkg.Message) error {
+func RegisterGenerate(n *maelstrom.Node) {
+	n.Handle(maelstrom.MsgGenerate, func(msg *maelstrom.Message) error {
 		var generate GenerateMessage
 		if err := json.Unmarshal(msg.Body, &generate); err != nil {
 			return err
@@ -22,8 +22,8 @@ func RegisterGenerate(n *pkg.Node) {
 		msgId := n.NextMsgId()
 
 		if err := n.Reply(msg, &GenerateMessage{
-			MessageBody: pkg.MessageBody{
-				Type:  pkg.MsgGenerateOk,
+			MessageBody: maelstrom.MessageBody{
+				Type:  maelstrom.MsgGenerateOk,
 				MsgId: msgId,
 			},
 			Id: fmt.Sprintf("%s-%d", n.NodeId(), msgId),
